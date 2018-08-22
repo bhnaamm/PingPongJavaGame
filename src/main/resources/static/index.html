@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebSocket Chat Application</title>
+<link href="/bootstrap.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet">
+<script src="/jquery-1.10.2.min.js"></script>
+<script src="/app.js"></script>
+<script src="https://cdn.jsdelivr.net/sockjs/1.0.0/sockjs.min.js"></script>
+</head>
+<body>
+	<div id="main-content" class="container">
+		<div class="row">
+			<div class="col-md-8">
+				<form class="form-inline">
+					<div class="form-group">
+						<label for="connect">Ping Pong:</label>
+						<button id="balling" type="button" >Throw a Ball</button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<canvas id="game" width="512" height="256"></canvas>
+		<div class="row">
+	
+			<div class="row">
+
+				<div class="col-md-6">
+					<form class="form-inline">
+						<button id="send" type="submit" >Start</button>
+					</form>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</body>
+</html>
