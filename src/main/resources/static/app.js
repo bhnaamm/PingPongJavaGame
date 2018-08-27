@@ -1,4 +1,3 @@
-
 var Game = {};
 
 Game.fps = 30;
@@ -71,16 +70,22 @@ Game.stopGameLoop = function() {
 
 Game.draw = function() {
 	
-	
 	this.context.clearRect(0, 0, 512, 256);
 	this.context.fillRect(256, 0, 2, 256);
-	if (this.player1)
+	if (this.player1){
 		this.player1.draw(this.context);
-	if (this.player2)
+		Game.socket.send(JSON.stringify(this.player1)+", type= play");
+	}
+	if (this.player2){
 		this.player2.draw(this.context);
+		Game.socket.send(JSON.stringify(this.player2)+", type= play");
+	}
 	if(typeof this.ball != 'undefined') {
 		this.ball.draw(this.context);
-	}	
+		Game.socket.send(JSON.stringify(this.ball));
+	}
+	
+	
 };
 
 Game.addPlayer = function(type, id) {
@@ -89,26 +94,27 @@ Game.addPlayer = function(type, id) {
 	case 1:
 		this.player1 = new Player(id, 5, 114);
 		
-		Game.socket.send(JSON.stringify(this.player1));
+		Game.socket.send(JSON.stringify(this.player1)+', type: playupdate1');
 		break;
 
 	case 2:
 		this.player2 = new Player(id, 512 - 7, 114);
-		Game.socket.send(JSON.stringify(this.player2));
+		Game.socket.send(JSON.stringify(this.player2)+', type: playupdate2');
 		break;
 	default:
 		break;
 	}
 
 }
-Game.balling = function(){
-	//$("#balling").prop("disabled",true);
+Game.play = function(){
+	// $("#play").prop("disabled",true);
 	this.ball = new Ball();
 	Game.draw();
+	Game.socket.send("play");
 }
 Game.updateBall = function(ballData) {
 	if(this.paused) return;
-//	this.ball = ballData[0];
+// this.ball = ballData[0];
 	if(typeof ballData == 'undefined' || typeof this.ball == 'undefined') return;
 	this.ball.x = ballData[0].x;
 	this.ball.y = ballData[0].y;
@@ -116,7 +122,7 @@ Game.updateBall = function(ballData) {
 	this.ball.vy = ballData[0].vy;
 	this.ball.width = ballData[0].width;
 	this.ball.heigth = ballData[0].heigth;
-	Game.socket.send(JSON.stringify(this.ball)+',ball');
+	Game.socket.send(JSON.stringify(this.ball)+', type: ballupdate');
 	Game.draw();
 }
 
@@ -128,12 +134,12 @@ Game.updatePlayer = function(id, playerBody) {
 	switch (id) {
 	case 0:
 		this.player1.y = playerBody.y;
-		Game.socket.send(JSON.stringify(this.player1));
+		Game.socket.send(JSON.stringify(this.player1)+', type: playupdate1');
 		Game.draw();
 		break;
 	case 1:
 		this.player2.y = playerBody.y;
-		Game.socket.send(JSON.stringify(this.player2));
+		Game.socket.send(JSON.stringify(this.player2)+', type: playupdate2');
 		Game.draw();
 		break;
 	}
@@ -157,14 +163,14 @@ Game.run = (function() {
 
 Game.connect = (function() {
 	Game.socket = new SockJS("/game");
-	//	Game.socket = new WebSocket("ws://localhost:8080/user");
+	// Game.socket = new WebSocket("ws://localhost:8080/user");
 	Game.socket.onopen = function() {
 		Game.startGameLoop();
 		setInterval(function() {
-			Game.socket.send('ping');//keeps it alive
+			Game.socket.send('ping');// keeps it alive
 		}, 5000);
 	};
-	//	Game.draw();
+	// Game.draw();
 	Game.socket.onclose = function() {
 		Game.stopGameLoop();
 	};
@@ -228,13 +234,10 @@ $(function() {
 	$("form").on('submit', function(e) {
 		e.preventDefault();
 	});
-	$("#balling").click(function() {
-		Game.balling();
+	$("#play").click(function() {
+		Game.play();
 	});
-	$("#disconnect").click(function() {
-		disconnect();
-	});
-	$("#send").click(function() {
+	$("#connect").click(function() {
 		Game.initialize();
 	});
 });

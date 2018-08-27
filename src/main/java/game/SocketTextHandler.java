@@ -1,28 +1,21 @@
 package game;
 
-import java.io.StringReader;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
 
-import org.springframework.format.Parser;
+import javax.json.JsonObjectBuilder;
+
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
+
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
-import com.fasterxml.jackson.core.JsonParser;
 
 import game.Location;
 import game.Player;
@@ -37,7 +30,6 @@ public class SocketTextHandler extends TextWebSocketHandler {
 	final JsonObjectBuilder json = Json.createObjectBuilder();
 	private int id;
 	private Player player;
-	private Player player2;
 
 	private Ball ball;
 
@@ -53,70 +45,98 @@ public class SocketTextHandler extends TextWebSocketHandler {
 
 	@Override
 	public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-		
-		
-		String payload = message.getPayload();
-		 
-		
-//		JsonReader jsonReader = Json.createReader(new StringReader(payload[0]+"}"));
-//		JsonObject msgJson = jsonReader.readObject();
-//		jsonReader.close();
-		if ("up".equals(payload))
-			this.player.setDirection(Direction.UP);
-		if ("down".equals(payload))
-			this.player.setDirection(Direction.DOWN);
-		
-//		switch (payload[1]) {
-//		case "player1":
-//		case "player2":
-//		case "dir":
-//			String direction = msgJson.getString("direction");
-//			if ("up".equals(direction))
-//				this.player.setDirection(Direction.UP);
-//			if ("down".equals(direction))
-//				this.player.setDirection(Direction.DOWN);
-//			break;
-//		case "ball":
-//				this.ball.setLocation(payload[0]);
-//				break;
-//		}
-	
-	}
 
-	@Override
-	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+		Player[] players = PlayerTimer.getPlayers().toArray(new Player[PlayerTimer.getPlayers().size()]);
 
-		
-		this.player = new Player(this.id, session);
-		//this.player2 = new Player(this.id, session);
-		this.ball = new Ball(session);
-		PlayerTimer.addBall(this.ball);
-		PlayerTimer.addPlayer(this.player);
-		//PlayerTimer.addPlayer(this.player2);
-//		
-
-		for (Iterator<Player> iterator = PlayerTimer.getPlayers().iterator(); iterator.hasNext();) {
-
-			Player player = iterator.next();
-
-			json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder().add("id", player.getId())
-					.add("x", player.getX()).add("y", player.getY())));
-
+		String payloadmessage = message.getPayload();
+		String payload;
+		String[] postfixes;
+		if(payloadmessage.contains(", type:")) {
+			postfixes = payloadmessage.split(", type:");
+			payload = postfixes[1];
+		}else {
+			payload = payloadmessage;
 		}
+		
 
-		ball = PlayerTimer.getBall();
-		if (ball != null) {
+		String jsonStr = "";
+		
+		switch (payload) {
+
+		case "play":
+			this.player = (PlayerTimer.getPlayers().size() == 0) ? new Player(this.id, session, 1)
+					: (PlayerTimer.getPlayers().size() == 1) ? new Player(this.id, session, 2) : null;
+			if (this.player != null)
+				PlayerTimer.addPlayer(this.player);
+
+			if (PlayerTimer.getPlayers().size() == 2) {
+				this.ball = new Ball(session);
+				PlayerTimer.addBall(this.ball);
+			}
+			for (Iterator<Player> iterator = PlayerTimer.getPlayers().iterator(); iterator.hasNext();) {
+
+				Player player = iterator.next();
+				if (player != null)
+					json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder()
+							.add("id", player.getId()).add("x", player.getX()).add("y", player.getY())));
+
+			}
+			if (this.ball != null) {
+				json.add("ball",
+						Json.createArrayBuilder()
+								.add(Json.createObjectBuilder().add("x", ball.location.x).add("y", ball.location.y)
+										.add("vx", ball.Vx).add("vy", ball.Vy).add("width", ball.width)
+										.add("heigth", ball.heigth)));
+			}
+			json.add("type", "join");
+			jsonStr = json.build().toString();
+			PlayerTimer.broadcast(jsonStr);
+			break;
+		case "playupdate1":
+			this.player = players[0];
+			this.player.update();
+			json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder()
+					.add("id", this.player.getId()).add("x", player.getX()).add("y", player.getY())));
+			json.add("type", "update");
+			jsonStr = json.build().toString();
+			PlayerTimer.broadcast(jsonStr);
+			break;
+		case "playupdate2":
+			this.player = players[1];
+			this.player.update();
+			json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder()
+					.add("id", this.player.getId()).add("x", player.getX()).add("y", player.getY())));
+			json.add("type", "update");
+			jsonStr = json.build().toString();
+			PlayerTimer.broadcast(jsonStr);
+			break;
+		case "ballupdate":
+			this.ball = PlayerTimer.getBall();
+			this.ball.Update();
 			json.add("ball",
 					Json.createArrayBuilder()
 							.add(Json.createObjectBuilder().add("x", ball.location.x).add("y", ball.location.y)
 									.add("vx", ball.Vx).add("vy", ball.Vy).add("width", ball.width)
 									.add("heigth", ball.heigth)));
+
+			json.add("type", "ballupdate");
+			jsonStr = json.build().toString();
+			PlayerTimer.broadcast(jsonStr);
+			break;
+		case "up":
+			this.player.setDirection(Direction.UP);
+			break;
+		case "down":
+			this.player.setDirection(Direction.DOWN);
+			break;
 		}
 
-		json.add("type", "join");
-		final String jsonStr = json.build().toString();
-		PlayerTimer.broadcast(jsonStr);
-		// PlayerTimer.broadcast(String.format("{'type':'join','data':[%s]}",sb.toString()));
+	}
+
+	@Override
+	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+
+//		PlayerTimer.broadcast(String.format("{'type':'join','data':[%s]}",sb.toString()));
 		sessions.add(sessions.size(), session);
 	}
 

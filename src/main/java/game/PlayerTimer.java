@@ -3,7 +3,7 @@ package game;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -13,7 +13,7 @@ import javax.json.JsonObjectBuilder;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
-import org.springframework.web.socket.WebSocketSession;
+
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -31,6 +31,7 @@ public class PlayerTimer {
 		if(players.size()==0)
 			startTimer();
 //		if(players.size()==2) return;
+		if(player != null)
 		players.put(Integer.valueOf(player.getId()), player);
 	}
 	
@@ -53,9 +54,9 @@ public class PlayerTimer {
 		final JsonObjectBuilder json = Json.createObjectBuilder();
 		
 		ball = PlayerTimer.getBall();
-		ball.Update();
+		
 		if(ball != null) {
-			
+			ball.Update();
 			json
 			  .add("ball", Json.createArrayBuilder()
 			    .add(Json.createObjectBuilder()
@@ -71,7 +72,7 @@ public class PlayerTimer {
 		for (Iterator<Player> iterator = PlayerTimer.getPlayers().iterator(); iterator
 				.hasNext();) {
 			Player player = iterator.next();
-			player.update(PlayerTimer.getPlayers());
+			player.update();
 			
 			json
 			  .add("players", Json.createArrayBuilder()
@@ -99,6 +100,9 @@ public class PlayerTimer {
 				
 			}
 		}
+//		Ball ball = PlayerTimer.getBall();
+//		ball.sendMessage(message);
+		
 	}
 	
 	public static void startTimer() {
