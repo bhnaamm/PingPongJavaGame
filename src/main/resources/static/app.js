@@ -6,7 +6,6 @@ Game.nextFrame = null;
 Game.interval = null;
 Game.direction = 'none';
 
-
 Game.initialize = function() {
 
 	canvas = document.getElementById("game");
@@ -14,7 +13,7 @@ Game.initialize = function() {
 	this.context = canvas.getContext("2d");
 
 	this.context.fillStyle = "white";
-	
+
 	window.addEventListener('keydown', function(e) {
 		var code = e.keyCode;
 		switch (code) {
@@ -69,60 +68,61 @@ Game.stopGameLoop = function() {
 };
 
 Game.draw = function() {
-	
+
 	this.context.clearRect(0, 0, 512, 256);
 	this.context.fillRect(256, 0, 2, 256);
-	if (this.player1){
+	if (this.player1) {
 		this.player1.draw(this.context);
-		Game.socket.send(JSON.stringify(this.player1)+", type= play");
+		Game.socket.send(JSON.stringify(this.player1) + ", type= play");
 	}
-	if (this.player2){
+	if (this.player2) {
 		this.player2.draw(this.context);
-		Game.socket.send(JSON.stringify(this.player2)+", type= play");
+		Game.socket.send(JSON.stringify(this.player2) + ", type= play");
 	}
-	if(typeof this.ball != 'undefined') {
+	if (typeof this.ball != 'undefined') {
 		this.ball.draw(this.context);
 		Game.socket.send(JSON.stringify(this.ball));
 	}
-	
-	
+
 };
 
-Game.addPlayer = function(type, id) {
+Game.addPlayer = function(type) {
 
 	switch (type) {
 	case 1:
-		this.player1 = new Player(id, 5, 114);
-		
-		Game.socket.send(JSON.stringify(this.player1)+', type: playupdate1');
+		this.player1 = new Player(type, 5, 114);
+
+		Game.socket.send(JSON.stringify(this.player1) + ', type: playupdate1');
 		break;
 
 	case 2:
-		this.player2 = new Player(id, 512 - 7, 114);
-		Game.socket.send(JSON.stringify(this.player2)+', type: playupdate2');
+		this.player2 = new Player(type, 512 - 7, 114);
+		Game.socket.send(JSON.stringify(this.player2) + ', type: playupdate2');
 		break;
 	default:
 		break;
 	}
 
 }
-Game.play = function(){
+Game.play = function() {
 	// $("#play").prop("disabled",true);
 	this.ball = new Ball();
 	Game.draw();
 	Game.socket.send("play");
 }
 Game.updateBall = function(ballData) {
-	if(this.paused) return;
-// this.ball = ballData[0];
-	if(typeof ballData == 'undefined' || typeof this.ball == 'undefined') return;
+	if (this.paused)
+		return;
+	// this.ball = ballData[0];
+	if (typeof ballData == 'undefined' || typeof this.ball == 'undefined')
+		return;
 	this.ball.x = ballData[0].x;
 	this.ball.y = ballData[0].y;
 	this.ball.vx = ballData[0].vx;
 	this.ball.vy = ballData[0].vy;
 	this.ball.width = ballData[0].width;
 	this.ball.heigth = ballData[0].heigth;
-	Game.socket.send(JSON.stringify(this.ball)+', type: ballupdate');
+	Game.socket.send(JSON.stringify(this.ball) + ', type: ballupdate');
 	Game.draw();
 }
 
@@ -134,17 +134,16 @@ Game.updatePlayer = function(id, playerBody) {
 	switch (id) {
 	case 0:
 		this.player1.y = playerBody.y;
-		Game.socket.send(JSON.stringify(this.player1)+', type: playupdate1');
+		Game.socket.send(JSON.stringify(this.player1) + ', type: playupdate1');
 		Game.draw();
 		break;
 	case 1:
 		this.player2.y = playerBody.y;
-		Game.socket.send(JSON.stringify(this.player2)+', type: playupdate2');
+		Game.socket.send(JSON.stringify(this.player2) + ', type: playupdate2');
 		Game.draw();
 		break;
 	}
-	
-	
+
 };
 
 Game.run = (function() {
@@ -168,7 +167,7 @@ Game.connect = (function() {
 		Game.startGameLoop();
 		setInterval(function() {
 			Game.socket.send('ping');// keeps it alive
-		}, 5000);
+		}, 500);
 	};
 	// Game.draw();
 	Game.socket.onclose = function() {
@@ -189,15 +188,26 @@ Game.connect = (function() {
 			}
 			break;
 		case 'join':
-			if (typeof Game.player1 == "undefined")
-				Game.addPlayer(1, packet.players[0].id);
+			if (typeof Game.player1 == "undefined") {
+				Game.player1 = packet.players[0];
+				Game.addPlayer(1);
+				Game.updatePlayer(1, packet.players[0])
+			}
 			if (typeof Game.player1 != "undefined"
-					&& typeof Game.player2 == "undefined")
-				Game.player2 = packet.players[0];
-			Game.addPlayer(2, packet.players[0].id);
+					&& typeof Game.player2 == "undefined") {
+				Game.player2 = packet.players[1];
+				Game.addPlayer(2);
+				Game.updatePlayer(2, packet.players[1])
+			}
 			break;
 		case 'ballUpdate':
 			Game.updateBall(packet.ball);
+			break;
+		case 'playupdate1':
+			Game.updatePlayer(1, packet.players[0]);
+			break;
+		case 'playupdate2':
+			Game.updatePlayer(2, packet.players[0]);
 			break;
 		default:
 		}

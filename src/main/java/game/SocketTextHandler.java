@@ -8,7 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.json.Json;
-
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 
 import org.springframework.stereotype.Component;
@@ -27,7 +27,8 @@ public class SocketTextHandler extends TextWebSocketHandler {
 
 	private static final AtomicInteger playerIds = new AtomicInteger(0);
 	private static final Random random = new Random();
-	final JsonObjectBuilder json = Json.createObjectBuilder();
+	private JsonObjectBuilder json = Json.createObjectBuilder();
+	private JsonArrayBuilder jsonArray = Json.createArrayBuilder();
 	private int id;
 	private Player player;
 
@@ -66,6 +67,8 @@ public class SocketTextHandler extends TextWebSocketHandler {
 		case "play":
 			this.player = (PlayerTimer.getPlayers().size() == 0) ? new Player(this.id, session, 1)
 					: (PlayerTimer.getPlayers().size() == 1) ? new Player(this.id, session, 2) : null;
+			
+			
 			if (this.player != null)
 				PlayerTimer.addPlayer(this.player);
 
@@ -77,8 +80,8 @@ public class SocketTextHandler extends TextWebSocketHandler {
 
 				Player player = iterator.next();
 				if (player != null)
-					json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder()
-							.add("id", player.getId()).add("x", player.getX()).add("y", player.getY())));
+					jsonArray.add(Json.createObjectBuilder()
+							.add("id", player.getId()).add("x", player.location.x).add("y", player.location.y));
 
 			}
 			if (this.ball != null) {
@@ -88,6 +91,7 @@ public class SocketTextHandler extends TextWebSocketHandler {
 										.add("vx", ball.Vx).add("vy", ball.Vy).add("width", ball.width)
 										.add("heigth", ball.heigth)));
 			}
+			json.add("players", jsonArray);
 			json.add("type", "join");
 			jsonStr = json.build().toString();
 			PlayerTimer.broadcast(jsonStr);
@@ -95,30 +99,31 @@ public class SocketTextHandler extends TextWebSocketHandler {
 		case "playupdate1":
 			this.player = players[0];
 			this.player.update();
-			json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder()
-					.add("id", this.player.getId()).add("x", player.getX()).add("y", player.getY())));
+			jsonArray.add(Json.createObjectBuilder()
+					.add("id", this.player.getId()).add("x", player.location.x).add("y", player.location.y));
 			json.add("type", "update");
+			json.add("players", jsonArray);
 			jsonStr = json.build().toString();
 			PlayerTimer.broadcast(jsonStr);
 			break;
 		case "playupdate2":
 			this.player = players[1];
 			this.player.update();
-			json.add("players", Json.createArrayBuilder().add(Json.createObjectBuilder()
-					.add("id", this.player.getId()).add("x", player.getX()).add("y", player.getY())));
+			jsonArray.add(Json.createObjectBuilder()
+					.add("id", this.player.getId()).add("x", player.location.x).add("y", player.location.y));
 			json.add("type", "update");
+			json.add("players", jsonArray);
 			jsonStr = json.build().toString();
 			PlayerTimer.broadcast(jsonStr);
 			break;
 		case "ballupdate":
 			this.ball = PlayerTimer.getBall();
 			this.ball.Update();
-			json.add("ball",
-					Json.createArrayBuilder()
+				jsonArray
 							.add(Json.createObjectBuilder().add("x", ball.location.x).add("y", ball.location.y)
 									.add("vx", ball.Vx).add("vy", ball.Vy).add("width", ball.width)
-									.add("heigth", ball.heigth)));
-
+									.add("heigth", ball.heigth));
+			json.add("ball", jsonArray);
 			json.add("type", "ballupdate");
 			jsonStr = json.build().toString();
 			PlayerTimer.broadcast(jsonStr);

@@ -23,57 +23,40 @@ public class Player {
 	}
 
 	private String name;
-	private Location location;
+	public Location location;
 	private int score;
-	private int X;
-	private int Y;
+	
 
-	public int getX() {
-		return X;
-	}
-
-	public void setX(int x) {
-		X = x;
-	}
-
-	public int getY() {
-		return Y;
-	}
-
-	public void setY(int y) {
-		Y = y;
-	}
 
 	private int width;
 
 	public Player(int id, WebSocketSession session,int type) {
 		this.id = id;
-
+		this.type = type;
 		this.score = 0;
 		this.session = session;
 		this.location = new Location();
 		this.location.y = Constants.GAME_H / 2; // temporary solution
-		this.location.x = (type==1)? 5:503;
+		this.location.x = (type==2)? 5:503;
 		this.width = Constants.DEFAULT_WIDTH;
 		this.heigth = Constants.DEFAULT_HEIGHT;
-		this.X = this.location.x;
-		this.Y = this.location.y;
+
 	}
 
 	public synchronized void update() throws Exception {
 		if (this.direction == null)
 			return;
-		this.location = new Location();
+
 		Location nextLocation = this.location.getNextLocation(this.direction);
 		final JsonObjectBuilder json = Json.createObjectBuilder();
 
 		nextLocation.y = (this.direction == Direction.DOWN)
-				? Math.min(Constants.GAME_H - Constants.DEFAULT_HEIGHT, this.Y + Constants.STEP_SIZE)
-				: (this.direction == Direction.UP) ? Math.max(0, this.Y - Constants.STEP_SIZE) : this.Y;
-		this.Y = nextLocation.y;
-
+				? Math.min(Constants.GAME_H - Constants.DEFAULT_HEIGHT, this.location.y + Constants.STEP_SIZE)
+				: (this.direction == Direction.UP) ? Math.max(0, this.location.y - Constants.STEP_SIZE) : this.location.y;
+		this.location.y = nextLocation.y;
+		
 		json.add("players", Json.createArrayBuilder()
-				.add(Json.createObjectBuilder().add("id", this.id).add("x", this.X).add("y", this.Y)));
+				.add(Json.createObjectBuilder().add("id", this.id).add("x", this.location.x).add("y", this.location.y)));
 
 		json.add("type", "update");
 		final String jsonStr = json.build().toString();
